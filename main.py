@@ -1,6 +1,22 @@
 import pygame
 import sys
 
+
+class Kirby:
+    def __init__(self, position):
+        self.pos = pygame.Vector2(position)
+        self.size = 50
+        self.surface = pygame.Rect(self.pos.x, self.pos.y, self.size, self.size)
+
+    def update(self):
+        # Met à jour la position du Rect
+        self.surface.topleft = self.pos
+
+    def move(self, dx, dy):
+        self.pos.x += dx
+        self.pos.y += dy
+        self.update()
+
 class Dot:
     def __init__(self, position, velocity):
         self.pos = pygame.Vector2(position)
@@ -34,7 +50,7 @@ class Dot:
 class Simulation:
     def __init__(self):
         pygame.init()
-        self.size = self.width, self.height = (640, 480)
+        self.size = self.width, self.height = (1000,1000)
         self.window = pygame.display.set_mode(self.size)
         pygame.display.set_caption("EvolveWorld")
         self.clock = pygame.time.Clock()
@@ -75,7 +91,7 @@ class Simulation:
             self.processInput()
             self.update()
             self.render()
-            self.clock.tick(60)
+            self.clock.tick(140)
 
 sim = Simulation()
 sim.run()
