@@ -1,7 +1,10 @@
 import pygame
 import sys
 import math
+import time
 import random
+import numpy as np
+
 class Entity:
     def __init__(self, position, velocity,size = 25):
         self.pos = pygame.Vector2(position)
@@ -38,7 +41,7 @@ class Entity:
 class Spike(Entity):
     def __init__(self, position, velocity):
         super().__init__(position, velocity)
-        self.speed=6
+        self.speed=3
 
     
     
@@ -86,20 +89,19 @@ class Simulation:
         self.window = pygame.display.set_mode(self.size)
         pygame.display.set_caption("EvolveWorld")
         self.clock = pygame.time.Clock()
+        self.fps = 60
         self.running = True
         self.kirbyGeneration:list[Kirby] = []
         self.generationRunning = True
-        self.spikes = [
-            Spike((50, 100), (1, 0)),
-        ]
-
+        self.spikes:list[Spike] = []
+        self.gen = 1
         self.kirbys : list[Kirby] = []
-        
+        self.history = []
 
     def generateRandomKirby(self):
-        size = random.randint(20,30)
-        speed = random.randint(3,5)
-        vision = random.randint(3,6)
+        size = 25
+        speed = 3
+        vision = 4
         return Kirby((random.randint(0,self.width),random.randint(0,self.height)),(random.randint(-1,1),random.randint(-1,1)),size,speed,vision)
 
     def generateSpikes(self):
@@ -117,20 +119,29 @@ class Simulation:
         self.selection()
         bestKirby = self.kirbyGeneration[0]
         print(bestKirby)
+        self.history.append([self.gen, bestKirby.size, bestKirby.speed, bestKirby.vision, bestKirby.timeAlive])
+        
         for i in range(1,int(len(self.kirbyGeneration))-1):
             newKirby = self.reproduction(bestKirby,self.kirbyGeneration[i])
             newKirby.mutate()
             self.kirbyGeneration[i] = newKirby
-        
+        self.gen += 1
 
     def processInput(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
                 self.generationRunning = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_l:
+                    self.fps += 10
+                if event.key == pygame.K_j:
+                    self.fps -= 10
+                
 
     def initKirbys(self):
         listPos = [(100,100),(300,100),(500,100),(700,100),(100,300),(700,300),(100,500),(300,500),(500,500),(700,500)]
+        random.shuffle(listPos)
         listVel = [(1,0),(-1,0),(1,1),(-1,1),(-1,-1),(1,-1),(0,1),(0,-1)]
         for i in range(0,9):
             self.kirbyGeneration[i].pos = pygame.Vector2(listPos[i])
@@ -138,6 +149,16 @@ class Simulation:
             self.kirbyGeneration[i].timeAlive = 0
             self.kirbys.append(self.kirbyGeneration[i])
 
+    def initSpikes(self):
+        listPos = [(200,200),(400,200),(600,200),(200,400),(600,400),(200,600),(400,600),(600,600),(400,400),(500,300)]
+        random.shuffle(listPos)
+        listVel = [(1,0),(-1,0),(1,1),(-1,1),(-1,-1),(1,-1),(0,1),(0,-1)]
+        self.spikes = []
+        for i in range(0,10):
+            spike = self.generateSpikes()
+            spike.pos = pygame.Vector2(listPos[i])
+            spike.vel = pygame.Vector2(listVel[random.randint(0,len(listVel)-1)])
+            self.spikes.append(spike)
     def update(self):
         for spike in self.spikes:
             spike.update(self.size)
@@ -178,7 +199,7 @@ class Simulation:
             self.processInput()
             self.update()
             self.render()
-            self.clock.tick(60)
+            self.clock.tick(self.fps)
             if len(self.kirbys)==0 :
                 self.generationRunning = False
 
@@ -187,12 +208,19 @@ class Simulation:
             self.kirbyGeneration.append(self.generateRandomKirby())
         for i in range(0,10):
             self.spikes.append(self.generateSpikes())
+        i = 0
         while self.running:
             self.generationRunning = True
             self.initKirbys()
+            self.initSpikes()
+            print("Generation %s" % i)
+            i += 1
             self.generationRun()
             self.evolution()
             
 
 sim = Simulation()
 sim.run()
+np.save("history.npy", sim.history)
+pygame.quit()   
+
